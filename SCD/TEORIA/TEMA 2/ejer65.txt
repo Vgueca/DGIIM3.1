@@ -1,0 +1,47 @@
+Suponiendo que el Monitor sea SU, el programa quedaría bloqueado porque al realizar P2 p.signal() daría prioridad para la ejecución a 
+P1 que ejecutaría q.signal() y posteriormente P2 ejecutaría q.wait() quedándose bloqueado el programa.
+
+
+
+Suponiendo que el monitor no sea SU:
+El programa quedaría bloqueado ante dos posibles escenarios. El primero es que una vez el proceso P2 hace
+p.signal() para despertar al proceso P1, el proceso P1 puede realizar inmediantamente el procesamiento 
+correspondiente y ejecutar q.signal(), sin que el proceso P2 haya llegado a alcanzar q.wait() lo cuál
+haría que le proceso P2 quedase permantemente bloqueado y el posteriormente el proceso P1 también.
+El otro escenario es el más probable que se de y es el caso en que el proceso P2 ejecute M.sigue()
+antes que el proceso P1 ejecute M.stop(). En ese caso P2 ejecutaria p.signal() y posteriormente P1 
+ejecutaría p.wait() quedando bloqueado totalmente, y posteriormente P2 quedaría también bloqueado
+al hacer q.wait().
+
+La manera de solucionar este comportamiento y obligar  a que el programa cumpla con lo deseado por el
+programador es la siguiente:
+
+
+Monitor M ( ) {
+cond p, q;
+    procedure stop {
+        begin
+        p.wait();
+        .......
+        while(q.empty()){
+
+        }
+        q.signal();
+        
+        end;
+    }
+    procedure sigue {
+        begin 
+        .......
+        while(p.empty()){
+            
+        }
+        p.signal();
+
+        q.wait();
+        end;
+    }
+    begin
+
+    end;
+}
