@@ -1,0 +1,1 @@
+g++ -std=c++11 -pthread -I. -o ejecutable_exe .cpp scd.cpp

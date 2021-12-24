@@ -1,0 +1,539 @@
+\documentclass[12pt,a4paper]{article}
+\renewcommand{\baselinestretch}{1.0}
+\usepackage[spanish]{babel}
+%\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath,amsthm,verbatim,amssymb,amsfonts,amscd, graphicx}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tkz-fct}
+\usetikzlibrary{babel}
+\usepackage{pgfplots}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{forest}
+\usepackage{hyperref}
+
+%Uso de la fuente Source Sans Pro
+
+\usepackage[default]{sourcesanspro}
+%\usepackage[T1]{fontenc}
+
+%Controlar la partición de palabras.
+\pretolerance=5000
+\tolerance=6000
+
+%Simbolo de euro
+\usepackage{eurosym} % para el euro
+
+
+%Definición de monospace para codigo inline y paquete listings para código fuente.
+\def\code#1{\texttt{#1}}
+\usepackage{listingsutf8}
+\lstset{
+    %extendedchars=false,
+    %inputencoding=utf8
+}
+
+%Uso del paquete algorithmicx para crear pseudocodigo
+\usepackage{algpseudocode}
+
+\usepackage{color}
+\definecolor{grisclarito}{gray}{0.95}
+
+\lstdefinestyle{customc}{
+  %belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  frame=single,
+  %xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  %basicstyle=\ttfamily,
+  keywordstyle=\bfseries\color{green!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{blue},
+  stringstyle=\color{orange},
+  backgroundcolor=\color{grisclarito}
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue
+}
+
+\setlength{\parindent}{0pt}
+\topmargin0.0cm
+\headheight0.0cm
+\headsep0.0cm
+\oddsidemargin0.0cm
+\textheight23.0cm
+\textwidth16.5cm
+\footskip1.0cm
+
+\renewcommand*\contentsname{Índice}
+
+\begin{document}
+\begin{titlepage}
+  \centering
+  \includegraphics[width=0.6\textwidth]{/home/javier/Documentos/ugr.png}\par\vspace{1cm}
+  {\scshape\large Sistemas Concurrentes y Distribuidos \par} \vspace{1cm}
+  {\huge\bfseries Portafolios de prácticas \par}
+  \vspace{0.4cm}
+  {\large\itshape Contiene las prácticas del curso\\}
+  \vspace{0.6cm}
+  {\large\itshape  Javier Sáez de la Coba \\ 2º A2 \par} \vspace{1.00cm}
+  Curso 2017-2018 \\
+  \vfill
+
+  % Bottom of the page
+  {\large PDF generado el \today\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+\setlength{\parskip}{10pt}
+\section{Bloque 1}
+\subsection{Seminario 1}
+\subsubsection{Cálculo de una integral usando programación concurrente}
+
+Se ha optado por la solución contigua, ya que simplifica los cálculos y la implementación del for que corre en cada hebra.
+
+El valor resultado es:
+\begin{verbatim}
+g++ -pthread ejemplo09-plantilla.cpp -o ejemplo9 --std=c++11 
+javier@javier-zenbook:~/D/2/S/Seminario1                                        
+➤ ./ejemplo9
+Número de muestras (m)   : 1073741824
+Número de hebras (n)     : 4
+Valor de PI              : 3.14159265358979312
+Resultado secuencial     : 3.14159265358998185
+Resultado concurrente    : 3.14159265172718216
+Tiempo secuencial        : 19261 milisegundos. 
+Tiempo concurrente       : 5434.5 milisegundos. 
+Porcentaje t.conc/t.sec. : 28.21%
+
+	
+\end{verbatim}
+
+Se puede apreciar la correlación entre el número de hebras y la mejora del tiempo de ejecución.
+
+El código que ha generado este resultado es el siguiente:
+
+\lstinputlisting[style=customc, firstline=44, lastline=53]{Seminario1/ejemplo09-plantilla.cpp}
+\lstinputlisting[style=customc, firstline=57, lastline=71]{Seminario1/ejemplo09-plantilla.cpp}
+
+\subsection{Práctica 1}
+\subsubsection{Problema del productor consumidor}
+En este apartado vamos a resolver los ejercicios relacionados con el problema del productor consumidor (versión LIFO). En esta versión de la solución, se utiliza un único buffer que es leido como una pila. De ese modo, el último elemento producido e insertado en el buffer es el primero que es leido.
+
+Se ha intentado implementar la solución FIFO pero no ha sido posible debido a errores en el uso del buffer circular.
+
+Para la solución implementada, necesitamos varias variables compartidas: dos semáforos (uno de lectura y otro de escritura), el propio vector de elementos que actúa de buffer de lectura/escritura y una variable de tipo entero que indica cual es la primera posición libre en el vector usado.
+
+\lstinputlisting[style=customc, firstline=19, lastline=22]{Practica1/scd-p1-fuentes/prodcons-lifo.cpp}
+
+Para determinar la posición en la que leer o escribir se hace la siguiente operación:
+\begin{itemize}
+	\item La hebra productora escribe en la posición guardada por \texttt{primera\_libre}
+	\item La hebra productora lee el buffer en la posición determinada por $\texttt{primera\_libre} - 1$
+\end{itemize}
+
+Así mismo, los dos semáforos: \texttt{libres} y \texttt{ocupadas} tienen los valores iniciales \code{tam\_vec} y $0$ respectivamente. De este modo, la hebra productora consulta el semáforo \code{libres} que tiene como valor el número de casillas libres del vector. En caso de que estuviera lleno, el valor del semáforos sería $0$ y bloquearía la hebra, que se desbloquearía cuando la hebra consumidora lea un valor del vector y haga un \code{sem\_signal} sobre el semáforo.
+
+De manera similar funciona el semáforo \code{ocupadas}, cuyo valor corresponde con los datos producidos y listos para consumir del vector. De manera que la función de la hebra consumidora hace un \code{sem\_wait} sobre el semáforo de casillas ocupadas a la espera que la hebra productora introduzca algún valor.
+
+A continuación se presenta el código de las hebras productoras y consumidoras.
+
+\lstinputlisting[style=customc, firstline=88, lastline=98]{Practica1/scd-p1-fuentes/prodcons-lifo.cpp}
+
+\lstinputlisting[style=customc, firstline=102, lastline=113]{Practica1/scd-p1-fuentes/prodcons-lifo.cpp}
+
+
+
+\subsubsection{Problema de los fumadores}
+
+Para la solución del problema de los fumadores (variante del productor-consumidor) se ha recurrido a los siguientes semáforos:
+\begin{itemize}
+	\item \code{mostrador\_vacio}. Como únicamente puede haber un ingrediente en el mostrador y el estanquero no puede poner otro hasta que un fumador utiliza el producido se usa un semáforo cuyo valor inicial es $1$ y sobre el que la hebra del estanquero hace un \code{sem\_wait}. Las hebras de los fumadores son las que hacen un \code{sem\_signal} sobre el semáforo.
+	\item \code{ingredientes}: Es un array de semáforos, uno por cada ingrediente posible (y por tanto, según las condiciones del problema, por cada fumador. Especifica que ingredientes hay disponibles. Así cada fumador que necesite un ingrediente específico, hace un \code{sem\_wait} sobre el semáforo de dicho ingrediente y se pone a la cola de espera. El estanquero hace un \code{sem\_signal} sobre el semáforo del ingrediente que acaba de producir (y poner en el mostrador) en cada iteración.
+	
+\end{itemize}
+Las variables compartidas implementadas han sido:
+
+\lstinputlisting[style=customc, firstline=14, lastline=15]{Practica1/scd-p1-fuentes/fumadores.cpp}
+
+Las distintas funciones implementadas han sido las siguientes:
+
+Hebra del estanquero:
+
+\lstinputlisting[style=customc, firstline=45, lastline=53]{Practica1/scd-p1-fuentes/fumadores.cpp}
+
+Hebra del fumador:
+
+\lstinputlisting[style=customc, firstline=80, lastline=89]{Practica1/scd-p1-fuentes/fumadores.cpp}
+
+Función de producir un ingrediente:
+
+\lstinputlisting[style=customc, firstline=33, lastline=40]{Practica1/scd-p1-fuentes/fumadores.cpp}
+
+\section{Bloque 2}
+\subsection{Seminario 2}
+\subsubsection{Actividades relativas al monitor Barrera1 (SC)}
+
+Se pasa a describir tres hechos:
+
+\textbf{La hebra que entra la última al método cita (la hebra señaladora) es siempre la primera en salir de dicho método.}
+
+Este comportamiento se debe a la semántica del monitor, que es Señalar y Continuar, esto es que la hebra señaladora termina su ejecución. Por eso, la última hebra, que es la que despierta al resto de hebras sale primero del monitor, porque nunca espera nada.
+
+\textbf{El orden en el que las hebras señaladas logran entrar de nuevo
+al monitor no siempre coincide con el orden de salida de wait
+(se observa porque los números de orden de entrada no
+aparecen ordenados a la salida).}
+
+Los procesos despertados con \code{notify\_one()} se ponen en una cola dentro del monitor para recuperar el cerrojo. Esta cola tiene cierta aleatoriedad.
+
+\textbf{El constructor de la clase no necesita ejecutarse en exclusión mutua.}
+
+Esto es porque el constructor del monitor no se ejecuta desde ninguna hebra, sino desde el \code{main}. Por ello no es necesaria la exclusión mutua.
+
+\subsubsection{Propiedades de la barrera parcial con semántica SU}
+
+Describe razondamente en tu portafolio a que se debe que ahora, con la semántica SU, se cumplan las dos propiedades descritas. 
+
+\textbf{El orden de salida de la cita coincide siempre con el orden de entrada}
+
+Esto se debe a que cuando se hace \code{signal} se pasa el cerrojo directamente a la hebra que más tiempo llevaba esperando en la cola.
+
+\textbf{Hasta que todas las hebras de un grupo han salido de la cita, ninguna otra hebra que no sea del grupo logra entrar.}
+
+Esto se debe a que el código del monitor se ejecuta en exclusión mutua, pero como están saliendo las hebras debido a la naturaleza del \code{signal} no se puede ejecutar ninguna otra hebra dentro del monitor, por lo que no puede entrar al método \code{cita} y meterse en cola.
+
+
+
+\subsection{Práctica 2}
+
+\subsubsection{Problema de los fumadores con monitor SU}
+
+Variables condición y colas de espera del monitor \code{Estanco}. 
+
+\begin{algorithmic}[0]
+\State $suministro :integer$ \Comment{Guarda el producto que está en el mostrador.}
+\State $fumador[num\_fum] : condition$  $array$ \Comment{Distintas colas para los distintos tipos de fumadores}
+\State $estanquero : condition$ \Comment{Cola para la espera del estanquero}
+
+\end{algorithmic}
+
+Pseudocódigo para los tres procedimientos del monitor.
+
+\begin{algorithmic}[0]
+\Procedure{ponerIngrediente}{$integer: ingrediente$} \Comment{Ejecutado por la hebra Estanquero}
+\State $suministro \gets ingrediente$
+\State $fumador[ingrediente].signal()$
+
+\EndProcedure
+\end{algorithmic}
+
+\begin{algorithmic}[0]
+\Procedure{esperarRecogida}{} \Comment{Ejecutado por la hebra estanquero}
+\If{$suministro \neq -1$} \Comment{Si no se ha recogido el ingrediente anterior, esperar}
+\State $estanquero.wait$
+\EndIf
+\EndProcedure
+\end{algorithmic}
+
+\begin{algorithmic}[0]
+\Procedure{obtenerIngrediente}{$integer: num\_fumador$} \Comment{Ejecutado por la hebra fumador}
+\If{$suministro \neq num\_fumador$} \Comment{Si el ingrediente no es el necesario, esperar}
+\State $fumador[num\_fumador].wait$
+\EndIf
+\State $suministro \gets -1$ \Comment{Reiniciar el mostrador}
+\State $estanquero.signal$
+\EndProcedure
+\end{algorithmic}
+
+Código fuente en C++ del monitor
+
+\lstinputlisting[style=customc, firstline=33, lastline=77]{Practica2/fumadores.cpp}
+
+Ejemplo de la salida del programa:
+\begin{verbatim}
+➤ ./fumadores 
+--------------------------------------------------------
+Problema de los fumadores.
+--------------------------------------------------------
+Estanquero: pone ingrediente 0
+Fumador 0 retira el producto.
+Estanquero: pone ingrediente 1
+Fumador 1 retira el producto.
+Fumador 0  : empieza a fumar (36 milisegundos)
+Estanquero: pone ingrediente 0
+Fumador 1  : empieza a fumar (78 milisegundos)
+Fumador 0  : termina de fumar, comienza espera de ingrediente.
+Estanquero: pone ingrediente 2
+Fumador 0 retira el producto.
+Fumador 0  : empieza a fumar (124 milisegundos)
+Fumador 2 retira el producto.
+Fumador 2  : empieza a fumar (147 milisegundos)
+Estanquero: pone ingrediente 2
+Fumador 1  : termina de fumar, comienza espera de ingrediente.
+Fumador 0  : termina de fumar, comienza espera de ingrediente.
+Fumador 2  : termina de fumar, comienza espera de ingrediente.
+Fumador 2 retira el producto.
+Fumador 2  : empieza a fumar (174 milisegundos)
+Estanquero: pone ingrediente 0
+Fumador 0  : retira el producto.
+.
+.
+.
+\end{verbatim}
+
+
+
+\subsubsection{Simulación de una barbería con monitor SU}
+
+Variables condicion usadas en el monitor:
+
+\begin{algorithmic}[0]
+\State $gentePelandose :boolean$ \Comment{Variable para ver si el barbero está pelando a alguien.}
+\State $cliente : condition$ \Comment{Cola de espera de los clientes. El wait lo ejecutan los clientes cuando el barbero está ocupado. El signal lo ejecuta el barbero cuando termina de pelar a un cliente para llamar al siguiente.}
+\State $barbero : condition$ \Comment{Cola para la espera del barbero. El wait lo ejecuta el barbero cuando no hay más clientes esperando. El signal lo ejecutan los clientes cuando entran en la barbería para despertar al barbero.}
+
+\end{algorithmic}
+
+Código en C++11 del programa de simulación de barbería.
+
+\lstinputlisting[style=customc]{Practica2/barberia.cpp}
+
+Ejemplo de salida del programa:
+
+\begin{verbatim}
+➤ ./barberia 
+--------------------------------------------------------
+Problema de la barbería
+--------------------------------------------------------
+Barbero afeita cliente.
+Cliente : Barbero afeita cliente.
+2 se ha cortado el pelo.
+Cliente : 0 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 0 "Ya me creció el pelo"
+Cliente: 2 "Ya me creció el pelo"
+Cliente : 1 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente : 5 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 1 "Ya me creció el pelo"
+Cliente : 3 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 5 "Ya me creció el pelo"
+Cliente : 6 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 6 "Ya me creció el pelo"
+Cliente : 4 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 3 "Ya me creció el pelo"
+Cliente : 8 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 4 "Ya me creció el pelo"
+Cliente: 8 "Ya me creció el pelo"
+Cliente : 7 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 7 "Ya me creció el pelo"
+Cliente : 9 se ha cortado el pelo.
+Barbero afeita cliente.
+Cliente: 9 "Ya me creció el pelo"
+Cliente : 0 se ha cortado el pelo.
+.
+.
+.
+
+\end{verbatim}
+
+
+
+
+\section{Bloque 3}
+\subsection{Práctica 3}
+
+\subsubsection{Problema del productor-consumidor con buffer intermedio}
+Para poder solucionar este problema, se han realizado los siguientes cambios:
+\begin{itemize}
+
+\item Adaptar la selección de rol según el ID del proceso.
+\item Calcular los numeros de orden dentro de cada rol, siendo los productores $ id\_propio $ y los consumidores $ id\_propio - num\_productores - 1 $
+\item Modificar la función producir dato para que tenga en cuenta el rango en el que produce.
+\item Modificar la función buffer para que identifique los mensajes por etiquetas en vez de por ID's de proceso.
+
+\end{itemize}
+
+
+Código fuente de la práctica:
+
+\lstinputlisting[style=customc]{Practica3/scd-p3-fuentes/prodcons2-mu.cpp}
+
+Ejemplo de la ejecución del programa para 20 elementos a producir:
+
+\begin{verbatim}
+
+➤ mpirun -np 10 prodcons2-mu 
+Productor ha producido valor 11
+Productor va a enviar valor 11
+Buffer ha recibido valor 11
+Buffer va a enviar valor 11
+Consumidor ha recibido valor 11
+Productor ha producido valor 1
+Productor va a enviar valor 1
+Buffer ha recibido valor 1
+Buffer va a enviar valor 1
+Consumidor ha recibido valor 1
+Productor ha producido valor 6
+Productor va a enviar valor 6
+Buffer ha recibido valor 6
+Buffer va a enviar valor 6
+Consumidor ha recibido valor 6
+Productor ha producido valor 16
+Productor va a enviar valor 16
+Productor ha producido valor 12
+Productor va a enviar valor 12
+Buffer ha recibido valor 16
+Buffer va a enviar valor 16
+Buffer ha recibido valor 12
+Buffer va a enviar valor 12
+Consumidor ha recibido valor 16
+Consumidor ha recibido valor 12
+Productor ha producido valor 13
+Productor va a enviar valor 13
+Buffer ha recibido valor 13
+Productor ha producido valor 2
+Productor va a enviar valor 2
+Buffer ha recibido valor 2
+Buffer ha recibido valor 17
+Productor ha producido valor 17
+Productor va a enviar valor 17
+Productor ha producido valor 7
+Productor va a enviar valor 7
+Buffer ha recibido valor 7
+Buffer ha recibido valor 3
+Productor ha producido valor 3
+Productor va a enviar valor 3
+Productor ha producido valor 14
+Productor va a enviar valor 14
+Buffer ha recibido valor 14
+Buffer va a enviar valor 13
+Consumidor ha consumido valor 11
+Consumidor ha recibido valor 13
+Buffer va a enviar valor 2
+Consumidor ha consumido valor 12
+Consumidor ha recibido valor 2
+Consumidor ha consumido valor 6
+Consumidor ha recibido valor 17
+Buffer va a enviar valor 17
+Productor ha producido valor 8
+Productor va a enviar valor 8
+Buffer ha recibido valor 8
+Buffer ha recibido valor 18
+Productor ha producido valor 18
+Productor va a enviar valor 18
+Buffer ha recibido valor 4
+Productor ha producido valor 4
+Productor va a enviar valor 4
+Buffer va a enviar valor 7
+Consumidor ha consumido valor 16
+Consumidor ha recibido valor 7
+Buffer va a enviar valor 3
+Consumidor ha consumido valor 1
+Consumidor ha recibido valor 3
+Productor ha producido valor 15
+Productor va a enviar valor 15
+Buffer ha recibido valor 15
+Buffer ha recibido valor 9
+Productor ha producido valor 9
+Productor va a enviar valor 9
+Buffer ha recibido valor 10
+Productor ha producido valor 10
+Productor va a enviar valor 10
+Productor ha producido valor 16
+Productor va a enviar valor 16
+Buffer ha recibido valor 16
+Productor ha producido valor 19
+Productor va a enviar valor 19
+Buffer ha recibido valor 19
+Buffer ha recibido valor 5
+Productor ha producido valor 5
+Productor va a enviar valor 5
+Consumidor ha consumido valor 13
+Consumidor ha recibido valor 14
+Buffer va a enviar valor 14
+Productor ha producido valor 20
+Productor va a enviar valor 20
+Buffer ha recibido valor 20
+Productor ha producido valor 17
+Productor va a enviar valor 17
+Buffer va a enviar valor 8
+Buffer ha recibido valor 17
+Consumidor ha consumido valor 7
+Consumidor ha recibido valor 8
+Consumidor ha consumido valor 2
+Consumidor ha recibido valor 18
+Buffer va a enviar valor 18
+Productor ha producido valor 21
+Productor va a enviar valor 21
+Buffer ha recibido valor 21
+Productor ha producido valor 18
+Productor va a enviar valor 18
+Productor ha producido valor 6
+Productor va a enviar valor 6
+Productor ha producido valor 11
+Productor va a enviar valor 11
+Buffer va a enviar valor 4
+Consumidor ha consumido valor 17
+Buffer ha recibido valor 6
+Consumidor ha recibido valor 4
+Productor ha producido valor 22
+Productor va a enviar valor 22
+Consumidor ha consumido valor 3
+Buffer va a enviar valor 15
+Consumidor ha recibido valor 15
+Buffer ha recibido valor 11
+Consumidor ha consumido valor 14
+Productor ha producido valor 12
+Productor va a enviar valor 12
+Productor ha producido valor 7
+Productor va a enviar valor 7
+Consumidor ha consumido valor 8
+Consumidor ha consumido valor 18
+Consumidor ha consumido valor 4
+Consumidor ha consumido valor 15
+
+	
+\end{verbatim}
+
+
+%Apendice, entorno de ejecución de las prácticas.
+\newpage
+\appendix
+\section{Entorno de ejecución}
+\begin{verbatim}
+javier@javier-zenbook
+OS: Ubuntu 16.04 xenial
+Kernel: x86_64 Linux 4.10.0-35-lowlatency
+Uptime: 3d 4h 14m
+Packages: 3866
+Shell: fish
+Resolution: 1920x1080
+DE: Cinnamon 2.8.6
+WM: Muffin
+WM Theme:  (Numix)
+Adwaita [GTK2/3]
+Icon Theme: ubuntustudio
+Font: Sans 9
+CPU: Intel Core i7-7500U CPU @ 3.5GHz
+GPU: Mesa DRI Intel(R) HD Graphics 620 (Kabylake GT2) 
+RAM: 2850MiB / 7862MiB                      `
+\end{verbatim}
+% section  (end)
+\end{document}
